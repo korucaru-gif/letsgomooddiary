@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🌸 오늘의 기분 일기</title>
+  <meta name="description" content="오늘의 기분을 선택하면 명언과 감성 문구, 운세를 알려주는 기분 일기 앱" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── 리셋 & 기본 ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: linear-gradient(135deg, #f5f0ff 0%, #fce4ec 50%, #e8f5e9 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 16px 80px;
+      color: #444;
+    }
+
+    /* ── 헤더 ── */
+    .app-header {
+      text-align: center;
+      margin-bottom: 36px;
+      animation: fadeDown 0.6s ease;
+    }
+    .app-header .emoji { font-size: 48px; display: block; margin-bottom: 8px; }
+    .app-header h1 { font-size: 26px; font-weight: 700; color: #5a4a6a; }
+    .app-header p  { font-size: 14px; color: #999; margin-top: 6px; }
+
+    /* ── 날짜 배지 ── */
+    .date-badge {
+      background: rgba(255,255,255,0.7);
+      border-radius: 30px;
+      padding: 6px 18px;
+      font-size: 13px;
+      color: #888;
+      display: inline-block;
+      margin-bottom: 28px;
+      backdrop-filter: blur(4px);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    }
+
+    /* ── 기분 선택 카드 ── */
+    .mood-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      max-width: 480px;
+      width: 100%;
+      margin-bottom: 32px;
+    }
+
+    .mood-btn {
+      background: rgba(255,255,255,0.75);
+      border: 2px solid transparent;
+      border-radius: 18px;
+      padding: 18px 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+      box-shadow: 0 3px 14px rgba(0,0,0,0.07);
+      backdrop-filter: blur(6px);
+      user-select: none;
+    }
+    .mood-btn:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 22px rgba(0,0,0,0.12);
+    }
+    .mood-btn.active {
+      border-color: var(--accent);
+      background: var(--bg);
+      transform: translateY(-4px);
+      box-shadow: 0 8px 22px rgba(0,0,0,0.13);
+    }
+    .mood-btn .m-icon  { font-size: 34px; display: block; margin-bottom: 6px; }
+    .mood-btn .m-label { font-size: 13px; font-weight: 500; color: #666; }
+
+    /* ── 결과 카드 ── */
+    #result-section {
+      max-width: 520px;
+      width: 100%;
+      animation: fadeUp 0.5s ease;
+    }
+    #result-section.hidden { display: none; }
+
+    .result-card {
+      border-radius: 22px;
+      padding: 30px 32px;
+      margin-bottom: 14px;
+      box-shadow: 0 6px 28px rgba(0,0,0,0.09);
+      border-left: 6px solid var(--accent);
+      background: var(--bg);
+    }
+
+    .result-card .rc-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .result-card .rc-icon  { font-size: 30px; }
+    .result-card .rc-title { font-size: 18px; font-weight: 700; color: #444; }
+    .result-card .rc-mood  { color: var(--accent); }
+
+    .result-block {
+      background: rgba(255,255,255,0.75);
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 12px;
+    }
+    .result-block:last-child { margin-bottom: 0; }
+    .result-block .rb-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      color: var(--accent);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+    .result-block .rb-text {
+      font-size: 15px;
+      line-height: 1.8;
+      color: #555;
+    }
+
+    /* ── 저장 배지 ── */
+    .saved-badge {
+      display: inline-block;
+      background: #d4edda;
+      color: #155724;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+
+    /* ── 액션 버튼 행 ── */
+    .action-row {
+      display: flex;
+      gap: 10px;
+      max-width: 520px;
+      width: 100%;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      flex: 1;
+      min-width: 120px;
+      padding: 12px 18px;
+      border: none;
+      border-radius: 14px;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.09);
+    }
+    .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.13); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-save  { background: #c8e6c9; color: #2e7d32; }
+    .btn-reset { background: #fff3e0; color: #e65100; }
+    .btn-diary { background: #e3f2fd; color: #1565c0; }
+
+    /* ── 구분선 ── */
+    .section-divider {
+      max-width: 520px;
+      width: 100%;
+      text-align: center;
+      font-size: 15px;
+      font-weight: 700;
+      color: #888;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .section-divider::before,
+    .section-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(0,0,0,0.1);
+    }
+
+    /* ── 일기 목록 ── */
+    #diary-section { max-width: 520px; width: 100%; }
+    #diary-section.hidden { display: none; }
+
+    .diary-entry {
+      background: rgba(255,255,255,0.8);
+      border-radius: 14px;
+      padding: 14px 18px;
+      margin-bottom: 10px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+      border-left: 4px solid var(--accent);
+      animation: fadeUp 0.4s ease;
+    }
+    .diary-entry .de-icon  { font-size: 22px; margin-top: 2px; }
+    .diary-entry .de-date  { font-size: 12px; color: #aaa; }
+    .diary-entry .de-mood  { font-size: 14px; font-weight: 600; color: #555; margin: 2px 0; }
+    .diary-entry .de-quote { font-size: 12px; color: #888; line-height: 1.6; }
+    .diary-empty {
+      text-align: center;
+      color: #bbb;
+      font-size: 14px;
+      padding: 30px;
+    }
+
+    /* ── 애니메이션 ── */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 헤더 -->
+  <header class="app-header">
+    <span class="emoji">🌸</span>
+    <h1>오늘의 기분 일기</h1>
+    <p>지금 기분이 어때요? 아래에서 선택해 보세요.</p>
+  </header>
+
+  <!-- 날짜 -->
+  <div class="date-badge" id="today-date"></div>
+
+  <!-- 기분 버튼 그리드 -->
+  <div class="mood-grid" id="mood-grid">
+    <button class="mood-btn" id="btn-happy"  data-mood="happy"   onclick="selectMood(this)"
+            style="--accent:#F4C430;--bg:#FFF3CD;">
+      <span class="m-icon">😊</span><span class="m-label">행복함</span>
+    </button>
+    <button class="mood-btn" id="btn-sad"    data-mood="sad"     onclick="selectMood(this)"
+            style="--accent:#5DADE2;--bg:#D6EAF8;">
+      <span class="m-icon">😢</span><span class="m-label">슬픔</span>
+    </button>
+    <button class="mood-btn" id="btn-angry"  data-mood="angry"   onclick="selectMood(this)"
+            style="--accent:#E74C3C;--bg:#FADBD8;">
+      <span class="m-icon">😤</span><span class="m-label">화남</span>
+    </button>
+    <button class="mood-btn" id="btn-gloomy" data-mood="gloomy"  onclick="selectMood(this)"
+            style="--accent:#8E44AD;--bg:#E8DAEF;">
+      <span class="m-icon">😔</span><span class="m-label">우울</span>
+    </button>
+    <button class="mood-btn" id="btn-tired"  data-mood="tired"   onclick="selectMood(this)"
+            style="--accent:#27AE60;--bg:#D5F5E3;">
+      <span class="m-icon">😴</span><span class="m-label">피곤</span>
+    </button>
+    <button class="mood-btn" id="btn-anxious" data-mood="anxious" onclick="selectMood(this)"
+            style="--accent:#F39C12;--bg:#FEF9E7;">
+      <span class="m-icon">😰</span><span class="m-label">불안</span>
+    </button>
+  </div>
+
+  <!-- 결과 카드 -->
+  <div id="result-section" class="hidden">
+    <div class="result-card" id="result-card">
+      <div class="rc-header">
+        <span class="rc-icon" id="rc-icon"></span>
+        <span class="rc-title">오늘의 기분: <span class="rc-mood" id="rc-mood-label"></span>
+          <span class="saved-badge hidden" id="saved-badge">💾 저장됨</span>
+        </span>
+      </div>
+      <div class="result-block">
+        <div class="rb-label">✨ 오늘의 명언</div>
+        <div class="rb-text" id="rc-quote"></div>
+      </div>
+      <div class="result-block">
+        <div class="rb-label">🔮 오늘의 운세</div>
+        <div class="rb-text" id="rc-fortune"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 액션 버튼 -->
+  <div class="action-row">
+    <button class="btn btn-save"  id="btn-save"  onclick="saveDiary()"  disabled>💾 오늘 일기 저장</button>
+    <button class="btn btn-reset" id="btn-reset" onclick="resetAll()"   disabled>🔄 다시 선택</button>
+    <button class="btn btn-diary" id="btn-diary" onclick="toggleDiary()">📖 지난 일기 보기</button>
+  </div>
+
+  <!-- 일기 목록 -->
+  <div class="section-divider hidden" id="diary-divider">📖 나의 기분 일기</div>
+  <div id="diary-section" class="hidden"></div>
+
+
+  <script>
+    // ── 데이터 ──────────────────────────────────────────────
+    const MOOD_DATA = {
+      happy: {
+        label: "행복함", icon: "😊", accent: "#F4C430", bg: "#FFF3CD",
+        quotes: [
+          { text: "행복은 외부에서 오는 것이 아니라, 당신 자신으로부터 온다.", author: "헬렌 켈러 (미국 작가·교육가)" },
+          { text: "이 세상에서 행복을 가져다주는 방법은 딱 하나뿐이다. 그것은 감사하는 마음이다.", author: "볼테르 (프랑스 철학자)" },
+          { text: "행복은 습관이다. 그것을 몸에 지녀라.", author: "허버트 허바드 (미국 작가)" },
+          { text: "행복은 목적지가 아니라 여행하는 방식이다.", author: "마가렛 리 런벡 (미국 작가)" },
+          { text: "지금 이 순간을 즐겨라. 그것이 바로 살아있음이다.", author: "수잔 어츠 (미국 시인)" }
+        ],
+        fortunes: [
+          "오늘 하루 좋은 인연이 당신을 찾아옵니다. 활짝 웃으며 맞이하세요.",
+          "기분 좋은 에너지가 주변 사람들에게도 전해지는 하루입니다.",
+          "작은 행운들이 연속으로 찾아올 징조입니다."
+        ]
+      },
+      sad: {
+        label: "슬픔", icon: "😢", accent: "#5DADE2", bg: "#D6EAF8",
+        quotes: [
+          { text: "눈물은 말 못할 슬픔의 언어다.", author: "볼테르 (프랑스 철학자)" },
+          { text: "슬픔을 느끼는 것을 두려워하지 마라. 그것이 당신이 살아있다는 증거이다.", author: "칼릴 지브란 (레바논 시인)" },
+          { text: "그대가 흘리는 눈물은 씨앗이 된다. 이윽고 꽃이 피어날 것이다.", author: "빅토르 위고 (프랑스 소설가)" },
+          { text: "슬픔이 없다면 기쁨도 없다. 어둠이 없다면 빛도 없다.", author: "레프 톨스토이 (러시아 소설가)" },
+          { text: "상처받은 마음은 배움의 문을 여는 열쇠다.", author: "마야 안젤루 (미국 시인·작가)" }
+        ],
+        fortunes: [
+          "조용히 자신을 돌봐주는 하루가 되세요. 회복의 시간이 찾아옵니다.",
+          "오늘은 따뜻한 음료 한 잔이 큰 위안이 될 거예요.",
+          "마음을 열면 뜻밖의 위로가 가까운 곳에서 옵니다."
+        ]
+      },
+      angry: {
+        label: "화남", icon: "😤", accent: "#E74C3C", bg: "#FADBD8",
+        quotes: [
+          { text: "화가 날 때 말하면, 당신은 평생 후회할 최고의 연설을 하게 된다.", author: "앰브로즈 비어스 (미국 작가)" },
+          { text: "분노를 지배하라. 분노가 당신을 지배하기 전에.", author: "호라티우스 (로마 시인)" },
+          { text: "현명한 자는 화가 날 때 입을 닫는다.", author: "공자 (중국 철학자)" },
+          { text: "분노는 산(酸)과 같다. 그것을 담고 있는 그릇을 더 빨리 녹인다.", author: "마크 트웨인 (미국 소설가)" },
+          { text: "화를 내는 것은 타인의 잘못 때문에 자신을 벌하는 것이다.", author: "마르쿠스 아우렐리우스 (로마 황제·철학자)" }
+        ],
+        fortunes: [
+          "심호흡 한 번. 오늘은 쉬어가는 날입니다. 결정은 내일 하세요.",
+          "잠시 멈추면 더 좋은 선택이 보입니다.",
+          "오늘 하루 자신에게 관대해지면 에너지가 회복됩니다."
+        ]
+      },
+      gloomy: {
+        label: "우울", icon: "😔", accent: "#8E44AD", bg: "#E8DAEF",
+        quotes: [
+          { text: "가장 어두운 밤도 끝나고, 해는 다시 뜬다.", author: "빅토르 위고 (프랑스 소설가)" },
+          { text: "내가 이 세상에서 알고 있는 유일한 행복은 싸우고 이기는 것이다. 항복한 양심은 행복하지 않다.", author: "조르주 상드 (프랑스 소설가)" },
+          { text: "어둠 속에 있을 때, 빛을 향해 걸어라.", author: "마르쿠스 아우렐리우스 (로마 황제·철학자)" },
+          { text: "폭풍이 지나고 나면, 당신은 자신이 어떻게 살아남았는지조차 기억하지 못할 것이다.", author: "하루키 무라카미 (일본 소설가)" },
+          { text: "삶이 그대를 속일지라도, 슬퍼하거나 노하지 말라. 슬픔의 날을 참고 견디면 기쁨의 날이 오리니.", author: "알렉산드르 푸시킨 (러시아 시인)" }
+        ],
+        fortunes: [
+          "작은 것에서 기쁨을 찾는 하루가 될 것입니다. 햇살을 느껴보세요.",
+          "오늘은 자신을 위한 시간을 갖는 것이 최선입니다.",
+          "곧 마음이 가벼워지는 계기가 찾아올 예감입니다."
+        ]
+      },
+      tired: {
+        label: "피곤", icon: "😴", accent: "#27AE60", bg: "#D5F5E3",
+        quotes: [
+          "쉬는 것도 일의 일부다. — 존 스타인벡",
+          "당신은 충분히 열심히 살고 있다. 오늘만큼은 쉬어도 돼.",
+          "나무도 폭풍 뒤에 쉰다. 당신도 그럴 권리가 있다.",
+          "지금 느끼는 피로는 당신이 최선을 다했다는 증거다.",
+          "충전 없이 달리는 기계는 없다. 당신도 충전이 필요해."
+        ],
+        fortunes: [
+          "오늘은 몸이 먼저 신호를 보내고 있어요. 일찍 쉬면 내일이 달라집니다.",
+          "충분한 휴식 뒤에 좋은 아이디어가 찾아옵니다.",
+          "오늘 낮잠 한 번이 기적 같은 에너지를 줄 거예요."
+        ]
+      },
+      anxious: {
+        label: "불안", icon: "😰", accent: "#F39C12", bg: "#FEF9E7",
+        quotes: [
+          "당신이 두려워하는 일의 절반은 일어나지 않는다. — 토마스 풀러",
+          "불안은 상상력이 빚어낸 그림자다. 현실은 그보다 훨씬 괜찮다.",
+          "지금 이 순간에만 집중하자. 과거도 미래도 아닌, 지금.",
+          "불안은 내일의 걱정을 오늘 미리 겪는 것이다. 오늘 하루면 충분해.",
+          "숨을 깊이 들이쉬어. 지금 여기, 당신은 안전해."
+        ],
+        fortunes: [
+          "걱정보다 오늘에 집중하면 좋은 결과가 옵니다. 작은 것부터 시작해요.",
+          "두려움 너머에 당신이 원하는 것이 있습니다.",
+          "오늘 하루 한 가지 걱정을 내려놓으면 마음이 가벼워질 거예요."
+        ]
+      }
+    };
+
+    const WEEK = ["일요일","월요일","화요일","수요일","목요일","금요일","토요일"];
+
+    // ── 상태 ──────────────────────────────────────────────
+    let state = { mood: null, quote: null, fortune: null };
+    let diaryVisible = false;
+
+    // ── 날짜 표시 ──────────────────────────────────────────
+    (function initDate() {
+      const now = new Date();
+      const str = `${now.getFullYear()}년 ${now.getMonth()+1}월 ${now.getDate()}일 (${WEEK[now.getDay()]})`;
+      document.getElementById("today-date").textContent = str;
+    })();
+
+    // ── 헬퍼 ──────────────────────────────────────────────
+    function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+    function loadDiary() {
+      try { return JSON.parse(localStorage.getItem("moodDiary") || "[]"); }
+      catch { return []; }
+    }
+
+    function saveToDiary(entry) {
+      let diary = loadDiary();
+      diary = diary.filter(d => d.date !== entry.date);
+      diary.unshift(entry);
+      localStorage.setItem("moodDiary", JSON.stringify(diary));
+    }
+
+    // ── 기분 선택 ──────────────────────────────────────────
+    function selectMood(btn) {
+      // 버튼 활성화
+      document.querySelectorAll(".mood-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+
+      const mood    = btn.dataset.mood;
+      const data    = MOOD_DATA[mood];
+      const quoteObj = pick(data.quotes);   // { text, author }
+      const fortune  = pick(data.fortunes);
+
+      state = { mood, quote: quoteObj.text, author: quoteObj.author, fortune };
+
+      // 결과 카드 채우기
+      const card = document.getElementById("result-card");
+      card.style.setProperty("--accent", data.accent);
+      card.style.setProperty("--bg",     data.bg);
+      document.getElementById("rc-icon").textContent        = data.icon;
+      document.getElementById("rc-mood-label").textContent  = data.label;
+      document.getElementById("rc-quote").innerHTML =
+        `<span style="font-style:italic;">&ldquo;${quoteObj.text}&rdquo;</span><br>
+         <span style="font-size:12px;color:#999;margin-top:6px;display:block;">— ${quoteObj.author}</span>`;
+      document.getElementById("rc-fortune").textContent     = fortune;
+      document.getElementById("saved-badge").classList.add("hidden");
+
+      // 표시
+      const sec = document.getElementById("result-section");
+      sec.classList.remove("hidden");
+      sec.style.animation = "none";
+      requestAnimationFrame(() => { sec.style.animation = ""; });
+
+      // 버튼 활성화
+      document.getElementById("btn-save").disabled  = false;
+      document.getElementById("btn-reset").disabled = false;
+
+      // 일기 숨기기
+      if (diaryVisible) {
+        document.getElementById("diary-section").classList.add("hidden");
+        document.getElementById("diary-divider").classList.add("hidden");
+        diaryVisible = false;
+      }
+    }
+
+    // ── 저장 ──────────────────────────────────────────────
+    function saveDiary() {
+      if (!state.mood) return;
+      const today = new Date().toISOString().slice(0, 10);
+      saveToDiary({ date: today, mood: state.mood, quote: state.quote, author: state.author, fortune: state.fortune });
+
+      document.getElementById("saved-badge").classList.remove("hidden");
+      document.getElementById("btn-save").disabled = true;
+    }
+
+    // ── 리셋 ──────────────────────────────────────────────
+    function resetAll() {
+      state = { mood: null, quote: null, fortune: null };
+      document.querySelectorAll(".mood-btn").forEach(b => b.classList.remove("active"));
+      document.getElementById("result-section").classList.add("hidden");
+      document.getElementById("btn-save").disabled  = true;
+      document.getElementById("btn-reset").disabled = true;
+      if (diaryVisible) {
+        document.getElementById("diary-section").classList.add("hidden");
+        document.getElementById("diary-divider").classList.add("hidden");
+        diaryVisible = false;
+      }
+    }
+
+    // ── 일기 목록 ──────────────────────────────────────────
+    function toggleDiary() {
+      const sec = document.getElementById("diary-section");
+      const div = document.getElementById("diary-divider");
+
+      if (diaryVisible) {
+        sec.classList.add("hidden");
+        div.classList.add("hidden");
+        diaryVisible = false;
+        return;
+      }
+
+      // 결과 카드 숨기기
+      document.getElementById("result-section").classList.add("hidden");
+      document.querySelectorAll(".mood-btn").forEach(b => b.classList.remove("active"));
+      document.getElementById("btn-save").disabled  = true;
+      document.getElementById("btn-reset").disabled = true;
+      state = { mood: null, quote: null, fortune: null };
+
+      const diary = loadDiary();
+      sec.innerHTML = "";
+
+      if (diary.length === 0) {
+        sec.innerHTML = `<div class="diary-empty">📭 아직 저장된 일기가 없어요.<br>오늘 기분을 선택하고 저장해 보세요!</div>`;
+      } else {
+        diary.forEach(entry => {
+          const data  = MOOD_DATA[entry.mood] || {};
+          const qText = entry.quote || "";
+          const short = qText.length > 55 ? qText.slice(0, 55) + "…" : qText;
+          const el = document.createElement("div");
+          el.className = "diary-entry";
+          el.style.setProperty("--accent", data.accent || "#ccc");
+          el.innerHTML = `
+            <span class="de-icon">${data.icon || "📝"}</span>
+            <div>
+              <div class="de-date">${entry.date}</div>
+              <div class="de-mood">${data.label || ""}</div>
+              <div class="de-quote" style="font-style:italic;">${short}</div>
+              ${entry.author ? `<div style="font-size:11px;color:#bbb;margin-top:2px;">— ${entry.author}</div>` : ""}
+            </div>`;
+          sec.appendChild(el);
+        });
+      }
+
+      sec.classList.remove("hidden");
+      div.classList.remove("hidden");
+      diaryVisible = true;
+    }
+  </script>
+</body>
+</html>
